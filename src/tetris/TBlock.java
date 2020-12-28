@@ -11,7 +11,7 @@ public class TBlock {
         actualShape = 0;
         potentialShape = 1;
         topLeftRow = 0;
-        topLeftColumn = 0;
+        topLeftColumn = 3;
         switch (blockType) {
             case 1:
                 shapes = TBlocksShapes.ITetrominoRotations;

@@ -17,6 +17,11 @@ class THighScore {
         readSavedScores(bestScoreOfPlayerFile, playerBestScores);
     }
 
+    public void addScore(TScore score) {
+        addToHighScores(score);
+        addToBestScoreOfPlayer(score);
+    }
+
     @SuppressWarnings("unchecked")
     private void readSavedScores(String fileName, List<TScore> scoreList) {
         try {
@@ -44,12 +49,8 @@ class THighScore {
         }
     }
 
-    public void addScore(TScore score) {
-        addToHighScores(score);
-        addToBestScoreOfPlayer(score);
-    }
 
-    public void addToHighScores(TScore score) {
+    private void addToHighScores(TScore score) {
         int lowestScore = this.topScores.get(this.numberOfHighScores - 1).getScore();
         if (lowestScore < score.getScore()) {
             this.topScores.remove(this.numberOfHighScores - 1);
@@ -59,7 +60,7 @@ class THighScore {
         }
     }
 
-    public void addToBestScoreOfPlayer(TScore score) {
+    private void addToBestScoreOfPlayer(TScore score) {
         TScore tempScore;
         for (int i = 0; i < playerBestScores.size(); i++) {
             tempScore = playerBestScores.get(i);
@@ -72,5 +73,4 @@ class THighScore {
             }
         }
     }
-
 }

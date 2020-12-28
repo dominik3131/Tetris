@@ -13,6 +13,7 @@ TBlock            - class that is logical representation of block
 TBlocksShapes     - class with representation of  I O T J L Z S tetrominoes, and their rotations  
 TBlockRandomizer  - class with an algorithm TGM1 which is choosing next block  
 TGameController   - connects all parts of the game and controls behavior of the game
+TLayoutParts      - class that generate JAVAFX objects for others 
 
 List of tetrominoes  
 1 deep blue - I tetromino  

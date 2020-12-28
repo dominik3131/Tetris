@@ -3,11 +3,11 @@ package tetris;
 
 //based on Super Rotation System
 public class TBlocksShapes {
-    public static int[][][] ITetrominoRotations =
+    public static final int[][][] ITetrominoRotations =
             {
                     {
-                            {0, 0, 0, 0},
                             {1, 1, 1, 1},
+                            {0, 0, 0, 0},
                             {0, 0, 0, 0},
                             {0, 0, 0, 0},
                     },
@@ -18,9 +18,9 @@ public class TBlocksShapes {
                             {0, 1, 0, 0},
                     },
                     {
-                            {0, 0, 0, 0},
-                            {0, 0, 0, 0},
                             {1, 1, 1, 1},
+                            {0, 0, 0, 0},
+                            {0, 0, 0, 0},
                             {0, 0, 0, 0},
                     },
                     {
@@ -30,7 +30,7 @@ public class TBlocksShapes {
                             {0, 0, 1, 0},
                     },
             };
-    public static int[][][] OTetrominoRotations =
+    public static final int[][][] OTetrominoRotations =
             {
                     {
                             {0, 2, 2, 0},
@@ -57,7 +57,7 @@ public class TBlocksShapes {
                             {0, 0, 0, 0},
                     },
             };
-    public static int[][][] TTetrominoRotations = {
+    public static final int[][][] TTetrominoRotations = {
             {
                     {0, 3, 0, 0},
                     {3, 3, 3, 0},
@@ -84,7 +84,7 @@ public class TBlocksShapes {
             },
     };
 
-    public static int[][][] JTetrominoRotations = {
+    public static final int[][][] JTetrominoRotations = {
             {
                     {4, 0, 0, 0},
                     {4, 4, 4, 0},
@@ -111,7 +111,7 @@ public class TBlocksShapes {
             },
     };
 
-    public static int[][][] LTetrominoRotations = {
+    public static final int[][][] LTetrominoRotations = {
             {
                     {0, 0, 5, 0},
                     {5, 5, 5, 0},
@@ -137,7 +137,7 @@ public class TBlocksShapes {
                     {0, 0, 0, 0},
             },
     };
-    public static int[][][] ZTetrominoRotations = {
+    public static final int[][][] ZTetrominoRotations = {
             {
                     {6, 6, 0, 0},
                     {0, 6, 6, 0},
@@ -163,7 +163,7 @@ public class TBlocksShapes {
                     {0, 0, 0, 0},
             },
     };
-    public static int[][][] STetrominoRotations = {
+    public static final int[][][] STetrominoRotations = {
             {
                     {0, 7, 7, 0},
                     {7, 7, 0, 0},

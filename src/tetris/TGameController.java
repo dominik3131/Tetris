@@ -1,121 +1,136 @@
 package tetris;
 
 import javafx.stage.Stage;
+import javafx.util.Duration;
 import javafx.scene.Group;
 import javafx.scene.Scene;
+import javafx.scene.control.Button;
+import javafx.scene.control.Slider;
+import javafx.scene.control.TextField;
 import javafx.scene.layout.BorderPane;
-import javafx.scene.paint.Color;
-import javafx.scene.shape.Rectangle;
+import javafx.scene.text.*;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
+import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 
 public class TGameController {
-    private final int blockSize = 32;
-    TScore actualScore;
-    TBoard actualBoard;
-    TBlock actualTetromino;
-    TBlock nextTetromino;
-    THighScore scores;
-    TBlockRandomizer blockChooser;
-    Stage primaryStage;
-    Group boardBlocks;
-    Group tetrominoBlocks;
+    private TScore actualScore;
+    private TBoard actualBoard;
+    private TBlock actualTetromino;
+    private TBlock nextTetromino;
+    private THighScore scores;
+    private TBlockRandomizer blockChooser;
+    private BorderPane root;
+    private Group menu;
+    private Group newGameLauncher;
+    private Stage primaryStage;
+    private Group boardBlocks;
+    private Group actualTetrominoBlocks;
+    private Group nextTetrominoBlocks;
+    private Group labels;
+    private Slider difficultySlider;
+    private TextField playerNameInput;
+    private Text difficultyChooseLabel;
+    private Text scoreStatus;
+    private Text difficultyStatus;
+    private Timeline TetrominoFall;
+    private boolean softDropStatus;
+    private TLayoutParts layoutParts;
 
     public TGameController(Stage stage) {
         primaryStage = stage;
         primaryStage.setTitle("Tetris");
+        layoutParts = new TLayoutParts();
+        root = new BorderPane();
+
+
+        primaryStage.setResizable(false);
+        root.setId("pane");
+
+
+        Scene scene = layoutParts.setScene(root);
+        primaryStage.setScene(scene);
+        createMenu();
+        createNewGameLauncher();
+        showMenu();
+        softDropStatus = true;
+
+    }
+
+
+    /*
+     * --------------------------------------------------------------------------
+     * 							Game Logic
+     * --------------------------------------------------------------------------
+     */
+    public void setGame() {
         scores = new THighScore();
-        actualScore = new TScore(1);
         actualBoard = new TBoard();
         blockChooser = new TBlockRandomizer();
         actualTetromino = new TBlock(blockChooser.chooseBlock());
         nextTetromino = new TBlock(blockChooser.chooseBlock());
         boardBlocks = new Group();
-        tetrominoBlocks = new Group();
+        actualTetrominoBlocks = new Group();
+        nextTetrominoBlocks = new Group();
+        labels = new Group();
+        createGameView();
 
         primaryStage.addEventHandler(KeyEvent.KEY_PRESSED, controls);
-
-
-        BorderPane root = new BorderPane();
-        root.setId("pane");
-        root.getChildren().add(boardBlocks);
-        root.getChildren().add(tetrominoBlocks);
-
-        renderActualTetromino();
-        Scene scene = new Scene(root, 500, 640);
-        scene.getStylesheets().add(getClass().getResource("application.css").toExternalForm());
-        primaryStage.setScene(scene);
+        primaryStage.addEventHandler(KeyEvent.KEY_RELEASED, softDropResume);
     }
 
     public void playTheGame() {
+        setGame();
+        root.getChildren().addAll(boardBlocks, labels, actualTetrominoBlocks, nextTetrominoBlocks);
+        refreshBoard();
+        TetrominoFall = new Timeline(new KeyFrame(Duration.seconds(getFallingSpeed()), new EventHandler<ActionEvent>() {
 
-    }
-
-    private final EventHandler<KeyEvent> controls = new EventHandler<KeyEvent>() {
-        @Override
-        public void handle(KeyEvent event) {
-            if (event.getCode() == KeyCode.RIGHT) {
-                System.out.println("right");
-                moveTetrominoToTheSide("right");
-            } else if (event.getCode() == KeyCode.DOWN) {
-                System.out.println("DOWN");
+            @Override
+            public void handle(ActionEvent event) {
                 moveTetrominoDown();
-                actualScore.addSoftDropScore();
-            } else if (event.getCode() == KeyCode.LEFT) {
-                System.out.println("left");
-                moveTetrominoToTheSide("left");
-            } else if (event.getCode() == KeyCode.UP) {
-                System.out.println("UP");
-                actualTetromino.rotateBlock();
-                renderActualTetromino();
-            } else if (event.getCode() == KeyCode.N) {
-                System.out.println("N");
-                actualTetromino = nextTetromino;
-                nextTetromino = new TBlock(blockChooser.chooseBlock());
-                renderActualTetromino();
-            } else if (event.getCode() == KeyCode.M) {
-                System.out.println("M");
-                System.out.println(actualScore.getScore());
             }
-        }
-    };
-
-    private void renderBoard() {
-        boardBlocks.getChildren().clear();
-        for (int row = 0; row < actualBoard.heightOfBoard; row++) {
-            for (int col = 0; col < actualBoard.widthOfBoard; col++) {
-                if (actualBoard.landedBlocks[row][col] != 0) {
-                    Rectangle r = new Rectangle(col * blockSize, row * blockSize, blockSize, blockSize);
-                    r.setFill(chooseColor(actualBoard.landedBlocks[row][col]));
-                    boardBlocks.getChildren().add(r);
-                }
-            }
-        }
+        }));
+        TetrominoFall.setCycleCount(Timeline.INDEFINITE);
+        TetrominoFall.play();
     }
 
-    private void renderActualTetromino() {
-        tetrominoBlocks.getChildren().clear();
+    private void endTheGame() {
+        TetrominoFall.stop();
+        primaryStage.removeEventHandler(KeyEvent.KEY_PRESSED, controls);
+
+        System.out.println("koniec");
+    }
+
+    private double getFallingSpeed() {
+        return (11 - (double) actualScore.getDifficulty()) / 10;
+    }
+
+    private void addTetrominoToBoard() {
         for (int row = 0; row < actualTetromino.shapes[actualTetromino.actualShape].length; row++) {
             for (int col = 0; col < actualTetromino.shapes[actualTetromino.actualShape][row].length; col++) {
                 if (actualTetromino.shapes[actualTetromino.actualShape][row][col] != 0) {
-                    Rectangle r = new Rectangle((col + actualTetromino.topLeftColumn) * blockSize, (row + actualTetromino.topLeftRow) * blockSize, blockSize, blockSize);
-                    r.setFill(chooseColor(actualTetromino.shapes[actualTetromino.actualShape][row][col]));
-                    tetrominoBlocks.getChildren().add(r);
+                    actualBoard.landedBlocks[row + actualTetromino.topLeftRow][col + actualTetromino.topLeftColumn] = actualTetromino.shapes[actualTetromino.actualShape][row][col];
                 }
             }
         }
+        refreshBoard();
     }
 
-
-    private void moveTetrominoDown() {
-        if (dropCollisionDetection()) {
-            addTetrominoToBoard();
-        } else {
-            actualTetromino.topLeftRow++;
-            renderActualTetromino();
-        }
+    private void nextTetromino() {
+        actualTetromino = nextTetromino;
+        nextTetromino = new TBlock(blockChooser.chooseBlock());
+        softDropStatus = false;
     }
+    /*
+     * --------------------------------------------------------------------------
+     * 							Collision Detecting
+     * --------------------------------------------------------------------------
+     */
 
     private boolean dropCollisionDetection() {
         for (int row = 0; row < actualTetromino.shapes[actualTetromino.actualShape].length; row++) {
@@ -131,20 +146,6 @@ public class TGameController {
             }
         }
         return false;
-    }
-
-
-    private void moveTetrominoToTheSide(String side) {
-        int direction = 0;
-        if (side.toLowerCase().equals("left")) {
-            direction = -1;
-        } else if (side.toLowerCase().equals("right")) {
-            direction = 1;
-        }
-        if (!moveCollisionDetection(direction)) {
-            actualTetromino.topLeftColumn += direction;
-            renderActualTetromino();
-        }
     }
 
     private boolean moveCollisionDetection(int direction) {
@@ -164,6 +165,66 @@ public class TGameController {
         return false;
     }
 
+    private boolean rotateCollisionDetection() {
+        for (int row = 0; row < actualTetromino.shapes[actualTetromino.potentialShape].length; row++) {
+            for (int col = 0; col < actualTetromino.shapes[actualTetromino.potentialShape][row].length; col++) {
+                if (actualTetromino.shapes[actualTetromino.potentialShape][row][col] != 0) {
+                    if (col + actualTetromino.topLeftColumn < 0) {
+                        return true;
+                    } else if (col + actualTetromino.topLeftColumn >= actualBoard.landedBlocks[row].length) {
+                        return true;
+                    } else if (actualBoard.landedBlocks[row + actualTetromino.topLeftRow][col + actualTetromino.topLeftColumn] != 0) {
+                        return true;
+                    } else if (row + actualTetromino.topLeftRow + 1 >= actualBoard.landedBlocks.length) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    private boolean isSpaceForNextTetromino() {
+        for (int row = 0; row < actualTetromino.shapes[actualTetromino.actualShape].length; row++) {
+            for (int col = 0; col < actualTetromino.shapes[actualTetromino.actualShape][row].length; col++) {
+                if (actualTetromino.shapes[actualTetromino.actualShape][row][col] != 0) {
+                    if (actualBoard.landedBlocks[row + actualTetromino.topLeftRow][col + actualTetromino.topLeftColumn] != 0) {
+                        return false;
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
+    /*
+     * --------------------------------------------------------------------------
+     * 							Moving and Rotating
+     * --------------------------------------------------------------------------
+     */
+
+    void moveTetrominoDown() {
+        if (dropCollisionDetection()) {
+            addTetrominoToBoard();
+        } else {
+            actualTetromino.topLeftRow++;
+            renderActualTetromino();
+        }
+    }
+
+    private void moveTetrominoToTheSide(String side) {
+        int direction = 0;
+        if (side.toLowerCase().equals("left")) {
+            direction = -1;
+        } else if (side.toLowerCase().equals("right")) {
+            direction = 1;
+        }
+        if (!moveCollisionDetection(direction)) {
+            actualTetromino.topLeftColumn += direction;
+            renderActualTetromino();
+        }
+    }
+
     private void rotateTetromino() {
         if (!rotateCollisionDetection()) {
             actualTetromino.rotateBlock();
@@ -171,54 +232,203 @@ public class TGameController {
         renderActualTetromino();
     }
 
-    private boolean rotateCollisionDetection() {
-        return false;
+    /*
+     * --------------------------------------------------------------------------
+     * 						Layout and Rendering Tetrominos
+     * --------------------------------------------------------------------------
+     */
+    private void createMenu() {
+        menu = new Group();
+        layoutParts.drawBackground(menu, 50, 220, 500, 300);
+        Button playButton = layoutParts.drawButton(menu, 200, 250, "PLAY");
+        Button top10Button = layoutParts.drawButton(menu, 200, 310, "TOP 10 Scores");
+        Button highscoresButton = layoutParts.drawButton(menu, 200, 370, "HIGHSCORE OF EACH PLAYER");
+        Button exitButton = layoutParts.drawButton(menu, 200, 430, "EXIT");
+        playButton.addEventHandler(ActionEvent.ACTION, playGameEvent);
+        top10Button.addEventHandler(ActionEvent.ACTION, top10Event);
+        highscoresButton.addEventHandler(ActionEvent.ACTION, highscoresEvent);
+        exitButton.addEventHandler(ActionEvent.ACTION, exitEvent);
     }
 
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private void createNewGameLauncher() {
+        newGameLauncher = new Group();
+        layoutParts.drawBackground(newGameLauncher, 50, 220, 500, 300);
+        layoutParts.setSmallLabel(newGameLauncher, 200, 260, "YOUR NAME");
+        playerNameInput = layoutParts.drawTextField(newGameLauncher, 200, 280);
+        difficultySlider = layoutParts.drawSlider(newGameLauncher, 200, 350, 1, 10);
+        layoutParts.setSmallLabel(newGameLauncher, 200, 380, "DIFFICULTY LEVEL:");
+        difficultyChooseLabel = layoutParts.setSmallLabel(newGameLauncher, 320, 380, "1");
+        difficultySlider.valueProperty().addListener(new ChangeListener() {
+            public void changed(ObservableValue arg0, Object arg1, Object arg2) {
+                difficultyChooseLabel.textProperty().setValue(
+                        String.valueOf((int) difficultySlider.getValue()));
 
-    private void addTetrominoToBoard() {
-        for (int row = 0; row < actualTetromino.shapes[actualTetromino.actualShape].length; row++) {
-            for (int col = 0; col < actualTetromino.shapes[actualTetromino.actualShape][row].length; col++) {
-                if (actualTetromino.shapes[actualTetromino.actualShape][row][col] != 0) {
-                    actualBoard.landedBlocks[row + actualTetromino.topLeftRow][col + actualTetromino.topLeftColumn] = actualTetromino.shapes[actualTetromino.actualShape][row][col];
-                }
             }
-        }
-        refreshBoard();
+        });
+        Button playButton = layoutParts.drawButton(newGameLauncher, 200, 430, "PLAY");
+        playButton.addEventHandler(ActionEvent.ACTION, launchGameEvent);
     }
 
-    private void nextTetromino() {
-        actualTetromino = nextTetromino;
-        nextTetromino = new TBlock(blockChooser.chooseBlock());
+    private void createGameView() {
+
+        scoreStatus = layoutParts.setBigLabel(labels, 350, 130, "");
+        difficultyStatus = layoutParts.setBigLabel(labels, 350, 290, "");
+        layoutParts.setBigLabel(labels, 350, 50, actualScore.getPlayerName());
+        layoutParts.setBigLabel(labels, 350, 100, "SCORE");
+        layoutParts.setBigLabel(labels, 350, 210, "DIFFICULTY\nLEVEL");
+        layoutParts.setBigLabel(labels, 350, 370, "NEXT\nTETROMINO");
+    }
+
+    private void showMenu() {
+        root.getChildren().add(menu);
+    }
+
+    private void hideMenu() {
+        root.getChildren().remove(menu);
+    }
+
+    private void showNewGameLauncher() {
+        root.getChildren().add(newGameLauncher);
+    }
+
+    private void hideNewGameLauncher() {
+        root.getChildren().remove(newGameLauncher);
     }
 
     private void refreshBoard() {
         actualScore.addLinesClearScore(actualBoard.findAndClearFullLines());
+        refreshStatusTexts();
         renderBoard();
         nextTetromino();
-        renderActualTetromino();
-    }
-
-    private Color chooseColor(int colorNumber) {
-
-        switch (colorNumber) {
-            case 1:
-                return Color.CYAN;
-            case 2:
-                return Color.BLUE;
-            case 3:
-                return Color.ORANGE;
-            case 4:
-                return Color.YELLOW;
-            case 5:
-                return Color.LIMEGREEN;
-            case 6:
-                return Color.PURPLE;
-            case 7:
-                return Color.RED;
-            default:
-                return Color.WHITE;
+        if (isSpaceForNextTetromino()) {
+            renderActualTetromino();
+            renderNextTetromino();
+        } else {
+            endTheGame();
         }
     }
 
+    private void refreshStatusTexts() {
+        scoreStatus.setText(actualScore.getScore().toString());
+        difficultyStatus.setText(actualScore.getDifficulty().toString());
+    }
+
+    private void renderBoard() {
+        boardBlocks.getChildren().clear();
+        for (int row = 0; row < actualBoard.heightOfBoard; row++) {
+            for (int col = 0; col < actualBoard.widthOfBoard; col++) {
+                if (actualBoard.landedBlocks[row][col] != 0) {
+                    layoutParts.drawBlock(boardBlocks, col, row, actualBoard.landedBlocks[row][col]);
+                }
+            }
+        }
+    }
+
+    private void renderActualTetromino() {
+        actualTetrominoBlocks.getChildren().clear();
+        for (int row = 0; row < actualTetromino.shapes[actualTetromino.actualShape].length; row++) {
+            for (int col = 0; col < actualTetromino.shapes[actualTetromino.actualShape][row].length; col++) {
+                if (actualTetromino.shapes[actualTetromino.actualShape][row][col] != 0) {
+                    layoutParts.drawBlock(actualTetrominoBlocks, col + actualTetromino.topLeftColumn,
+                            row + actualTetromino.topLeftRow, actualTetromino.shapes[actualTetromino.actualShape][row][col]);
+                }
+            }
+        }
+    }
+
+    private void renderNextTetromino() {
+        nextTetrominoBlocks.getChildren().clear();
+        for (int row = 0; row < nextTetromino.shapes[nextTetromino.actualShape].length; row++) {
+            for (int col = 0; col < nextTetromino.shapes[nextTetromino.actualShape][row].length; col++) {
+                if (nextTetromino.shapes[nextTetromino.actualShape][row][col] != 0) {
+                    //Rectangle r = new Rectangle(col*blockSize+350,row*blockSize+400,blockSize,blockSize);
+                    //r.setFill(layoutParts.chooseColor(nextTetromino.shapes[nextTetromino.actualShape][row][col]));
+                    //nextTetrominoBlocks.getChildren().add(r);
+                    layoutParts.drawBlock(nextTetrominoBlocks, col + 12, row + 14,
+                            nextTetromino.shapes[nextTetromino.actualShape][row][col]);
+                }
+            }
+        }
+    }
+
+
+
+    /*
+     * --------------------------------------------------------------------------
+     * 						Controls Events
+     * --------------------------------------------------------------------------
+     */
+
+    EventHandler<ActionEvent> playGameEvent = new EventHandler<ActionEvent>() {
+        @Override
+        public void handle(ActionEvent event) {
+            System.out.println("play");
+            hideMenu();
+            showNewGameLauncher();
+        }
+    };
+    EventHandler<ActionEvent> launchGameEvent = new EventHandler<ActionEvent>() {
+        @Override
+        public void handle(ActionEvent event) {
+            System.out.println("play");
+            if (playerNameInput.getText().isEmpty()) {
+
+            } else {
+                actualScore = new TScore((int) difficultySlider.getValue(), playerNameInput.getText());
+                hideNewGameLauncher();
+                playTheGame();
+            }
+
+        }
+    };
+    EventHandler<ActionEvent> top10Event = new EventHandler<ActionEvent>() {
+        @Override
+        public void handle(ActionEvent event) {
+            System.out.println("top10");
+            hideMenu();
+            //showTop10();
+        }
+    };
+    EventHandler<ActionEvent> highscoresEvent = new EventHandler<ActionEvent>() {
+        @Override
+        public void handle(ActionEvent event) {
+            System.out.println("highscore");
+            hideMenu();
+            // showHighscores();
+        }
+    };
+    EventHandler<ActionEvent> exitEvent = new EventHandler<ActionEvent>() {
+        @Override
+        public void handle(ActionEvent event) {
+            System.exit(0);
+        }
+    };
+
+    EventHandler<KeyEvent> softDropResume = new EventHandler<KeyEvent>() {
+        @Override
+        public void handle(KeyEvent event) {
+            if (event.getCode() == KeyCode.DOWN)
+                softDropStatus = true;
+        }
+    };
+
+    private final EventHandler<KeyEvent> controls = new EventHandler<KeyEvent>() {
+        @Override
+        public void handle(KeyEvent event) {
+            if (event.getCode() == KeyCode.RIGHT) {
+                moveTetrominoToTheSide("right");
+            } else if (event.getCode() == KeyCode.DOWN) {
+                if (softDropStatus) {
+                    moveTetrominoDown();
+                    actualScore.addSoftDropScore();
+                    refreshStatusTexts();
+                }
+            } else if (event.getCode() == KeyCode.LEFT) {
+                moveTetrominoToTheSide("left");
+            } else if (event.getCode() == KeyCode.UP) {
+                rotateTetromino();
+            }
+        }
+    };
 }

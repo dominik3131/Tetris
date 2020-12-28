@@ -4,23 +4,25 @@ import java.io.Serializable;
 
 class TScore implements Serializable, Comparable<TScore> {
     private static final long serialVersionUID = 1L;
-    public int difficultyLevel;
-    public int totalLinesCleared;
-    public int score;
-    public String playerName;
+    private Integer difficultyLevel;
+    private int linesClearedAtActualDifficulty;
+    private Integer score;
+    private String playerName;
 
-    public TScore(int level) {
+    public TScore(int level, String name) {
         if (level < 1 || level > 10)
             difficultyLevel = 1;
         else
             difficultyLevel = level;
-
-        totalLinesCleared = 0;
+        playerName = name;
+        linesClearedAtActualDifficulty = 0;
         score = 0;
     }
 
     public void addLinesClearScore(int numberOfLinesCleared) {
         switch (numberOfLinesCleared) {
+            case 0:
+                break;
             case 1:
                 score += 40 * difficultyLevel;
                 break;
@@ -38,10 +40,12 @@ class TScore implements Serializable, Comparable<TScore> {
                 break;
         }
 
-        totalLinesCleared += numberOfLinesCleared;
+        linesClearedAtActualDifficulty += numberOfLinesCleared;
         if (difficultyLevel < 10) {
-            if (totalLinesCleared / difficultyLevel > 10)
+            if (linesClearedAtActualDifficulty >= 10) {
                 difficultyLevel++;
+                linesClearedAtActualDifficulty = 0;
+            }
         }
     }
 
@@ -49,12 +53,20 @@ class TScore implements Serializable, Comparable<TScore> {
         score += 1;
     }
 
-    public int getScore() {
+    public Integer getScore() {
         return this.score;
     }
 
     public String getPlayerName() {
         return playerName;
+    }
+
+    public Integer getDifficulty() {
+        return this.difficultyLevel;
+    }
+
+    public void setPlayerName(String name) {
+        playerName = name;
     }
 
     public int compareTo(TScore playerScore) {
