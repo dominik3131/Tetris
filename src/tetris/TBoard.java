@@ -15,7 +15,7 @@ public class TBoard {
         }
     }
 
-    public int checkFullLines() {
+    public int findAndClearFullLines() {
         int fullLines = 0;
         for (int i = heightOfBoard - 1; i >= 0; i--) {
             int lineCheckMarker = 1;
@@ -33,20 +33,18 @@ public class TBoard {
         return fullLines;
     }
 
-    public void clearLine(int numberOfLine) {
+    private void clearLine(int numberOfLine) {
         if (numberOfLine < heightOfBoard && numberOfLine >= 0) {
             for (int i = numberOfLine; i > 0; i--) {
-                for (int j = 0; j < widthOfBoard; j++) {
-                    landedBlocks[i][j] = landedBlocks[i - 1][j];
-                }
+                System.arraycopy(landedBlocks[i - 1], 0, landedBlocks[i], 0, widthOfBoard);
             }
         }
     }
 
-    public void fillForTest() {
+    public void fillForTest(int n) {
         for (int i = 0; i < heightOfBoard; i++) {
             for (int j = 0; j < widthOfBoard; j++) {
-                landedBlocks[i][j] = i;
+                landedBlocks[i][j] = i % n;
             }
         }
     }

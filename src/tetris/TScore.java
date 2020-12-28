@@ -22,16 +22,16 @@ class TScore implements Serializable, Comparable<TScore> {
     public void addLinesClearScore(int numberOfLinesCleared) {
         switch (numberOfLinesCleared) {
             case 1:
-                score = 40 * difficultyLevel;
+                score += 40 * difficultyLevel;
                 break;
             case 2:
-                score = 100 * difficultyLevel;
+                score += 100 * difficultyLevel;
                 break;
             case 3:
-                score = 300 * difficultyLevel;
+                score += 300 * difficultyLevel;
                 break;
             case 4:
-                score = 1200 * difficultyLevel;
+                score += 1200 * difficultyLevel;
                 break;
             default:
                 System.out.println("ERROR OF LINES CLEARED");
@@ -46,7 +46,7 @@ class TScore implements Serializable, Comparable<TScore> {
     }
 
     public void addSoftDropScore() {
-        //numbers of fields block moved down when down arrow key was pressed
+        score += 1;
     }
 
     public int getScore() {
