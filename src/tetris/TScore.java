@@ -6,8 +6,11 @@ class TScore implements Serializable, Comparable<TScore> {
     private static final long serialVersionUID = 1L;
     private Integer difficultyLevel;
     private int linesClearedAtActualDifficulty;
-    private Integer score;
-    private String playerName;
+    public Integer score;
+    public String playerName;
+
+    public TScore() {
+    }
 
     public TScore(int level, String name) {
         if (level < 1 || level > 10)
@@ -44,13 +47,17 @@ class TScore implements Serializable, Comparable<TScore> {
         if (difficultyLevel < 10) {
             if (linesClearedAtActualDifficulty >= 10) {
                 difficultyLevel++;
-                linesClearedAtActualDifficulty = 0;
+                linesClearedAtActualDifficulty = linesClearedAtActualDifficulty % 10;
             }
         }
     }
 
     public void addSoftDropScore() {
         score += 1;
+    }
+
+    public void addHardDropScore() {
+        score += 2;
     }
 
     public Integer getScore() {
@@ -71,5 +78,34 @@ class TScore implements Serializable, Comparable<TScore> {
 
     public int compareTo(TScore playerScore) {
         return playerScore.getScore() - this.score;
+    }
+
+    @Override
+    public String toString() {
+        return playerName + " " + score;
+    }
+
+    @Override
+    public int hashCode() {
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + ((playerName == null) ? 0 : playerName.hashCode());
+        return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj)
+            return true;
+        if (obj == null)
+            return false;
+        if (getClass() != obj.getClass())
+            return false;
+        TScore other = (TScore) obj;
+        if (playerName == null) {
+            return other.playerName == null;
+
+        } else
+            return playerName.equals(other.playerName);
     }
 }

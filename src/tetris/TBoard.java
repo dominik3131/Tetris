@@ -5,16 +5,6 @@ public class TBoard {
     final int heightOfBoard = 20;
     public int[][] landedBlocks = new int[heightOfBoard][widthOfBoard];
 
-    public void showBoard() {
-        System.out.println("\n---------------------------");
-        for (int i = 0; i < heightOfBoard; i++) {
-            System.out.println();
-            for (int j = 0; j < widthOfBoard; j++) {
-                System.out.format("%2d ", landedBlocks[i][j]);
-            }
-        }
-    }
-
     public int findAndClearFullLines() {
         int fullLines = 0;
         for (int i = heightOfBoard - 1; i >= 0; i--) {

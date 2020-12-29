@@ -1,34 +1,37 @@
 package tetris;
 
-import javafx.stage.Stage;
-import javafx.util.Duration;
-import javafx.scene.Group;
-import javafx.scene.Scene;
-import javafx.scene.control.Button;
-import javafx.scene.control.Slider;
-import javafx.scene.control.TextField;
-import javafx.scene.layout.BorderPane;
-import javafx.scene.text.*;
-import javafx.scene.input.KeyCode;
-import javafx.scene.input.KeyEvent;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.beans.value.ChangeListener;
-import javafx.beans.value.ObservableValue;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
+import javafx.scene.Group;
+import javafx.scene.Scene;
+import javafx.scene.control.Button;
+import javafx.scene.control.ScrollPane;
+import javafx.scene.control.Slider;
+import javafx.scene.control.TextField;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
+import javafx.scene.layout.BorderPane;
+import javafx.scene.text.Text;
+import javafx.stage.Stage;
+import javafx.util.Duration;
 
 public class TGameController {
     private TScore actualScore;
     private TBoard actualBoard;
     private TBlock actualTetromino;
     private TBlock nextTetromino;
-    private THighScore scores;
+    private final THighScore scores;
     private TBlockRandomizer blockChooser;
-    private BorderPane root;
+    private final BorderPane root;
     private Group menu;
     private Group newGameLauncher;
-    private Stage primaryStage;
+    private final Group topTenScoresScreen;
+    private final Group bestScoreOfPlayerScreen;
+    private final Group endGameScreen;
+    private final Stage primaryStage;
     private Group boardBlocks;
     private Group actualTetrominoBlocks;
     private Group nextTetrominoBlocks;
@@ -39,27 +42,27 @@ public class TGameController {
     private Text scoreStatus;
     private Text difficultyStatus;
     private Timeline TetrominoFall;
-    private boolean softDropStatus;
-    private TLayoutParts layoutParts;
+    private boolean dropStatus;
+    private final TLayoutParts layoutParts;
 
     public TGameController(Stage stage) {
         primaryStage = stage;
         primaryStage.setTitle("Tetris");
         layoutParts = new TLayoutParts();
         root = new BorderPane();
-
-
+        scores = new THighScore();
+        topTenScoresScreen = new Group();
+        bestScoreOfPlayerScreen = new Group();
+        endGameScreen = new Group();
         primaryStage.setResizable(false);
         root.setId("pane");
-
 
         Scene scene = layoutParts.setScene(root);
         primaryStage.setScene(scene);
         createMenu();
         createNewGameLauncher();
-        showMenu();
-        softDropStatus = true;
 
+        showMenu();
     }
 
 
@@ -69,7 +72,8 @@ public class TGameController {
      * --------------------------------------------------------------------------
      */
     public void setGame() {
-        scores = new THighScore();
+        clearStateOfTheGame();
+
         actualBoard = new TBoard();
         blockChooser = new TBlockRandomizer();
         actualTetromino = new TBlock(blockChooser.chooseBlock());
@@ -78,7 +82,7 @@ public class TGameController {
         actualTetrominoBlocks = new Group();
         nextTetrominoBlocks = new Group();
         labels = new Group();
-        createGameView();
+        createGameScreen();
 
         primaryStage.addEventHandler(KeyEvent.KEY_PRESSED, controls);
         primaryStage.addEventHandler(KeyEvent.KEY_RELEASED, softDropResume);
@@ -86,15 +90,19 @@ public class TGameController {
 
     public void playTheGame() {
         setGame();
-        root.getChildren().addAll(boardBlocks, labels, actualTetrominoBlocks, nextTetrominoBlocks);
-        refreshBoard();
-        TetrominoFall = new Timeline(new KeyFrame(Duration.seconds(getFallingSpeed()), new EventHandler<ActionEvent>() {
 
-            @Override
-            public void handle(ActionEvent event) {
-                moveTetrominoDown();
-            }
-        }));
+        root.getChildren().addAll(boardBlocks, labels, actualTetrominoBlocks, nextTetrominoBlocks);
+
+        TetrominoFall = new Timeline(new KeyFrame(Duration.seconds(getFallingSpeed()), event -> moveTetrominoDown()));
+        TetrominoFall.setCycleCount(Timeline.INDEFINITE);
+        refreshBoard();
+        TetrominoFall.play();
+        dropStatus = true;
+    }
+
+    private void refreshTetrominoFalling() {
+        TetrominoFall.stop();
+        TetrominoFall = new Timeline(new KeyFrame(Duration.seconds(getFallingSpeed()), event -> moveTetrominoDown()));
         TetrominoFall.setCycleCount(Timeline.INDEFINITE);
         TetrominoFall.play();
     }
@@ -102,8 +110,14 @@ public class TGameController {
     private void endTheGame() {
         TetrominoFall.stop();
         primaryStage.removeEventHandler(KeyEvent.KEY_PRESSED, controls);
+        showMenu();
+        createEndGameScreen();
+        showEndGameScreen();
+        scores.addScore(actualScore);
+    }
 
-        System.out.println("koniec");
+    private void clearStateOfTheGame() {
+        root.getChildren().removeAll(boardBlocks, labels, actualTetrominoBlocks, nextTetrominoBlocks);
     }
 
     private double getFallingSpeed() {
@@ -124,7 +138,7 @@ public class TGameController {
     private void nextTetromino() {
         actualTetromino = nextTetromino;
         nextTetromino = new TBlock(blockChooser.chooseBlock());
-        softDropStatus = false;
+        dropStatus = false;
     }
     /*
      * --------------------------------------------------------------------------
@@ -202,13 +216,20 @@ public class TGameController {
      * 							Moving and Rotating
      * --------------------------------------------------------------------------
      */
+    void hardDrop() {
+        while (moveTetrominoDown()) {
+            actualScore.addHardDropScore();
+        }
+    }
 
-    void moveTetrominoDown() {
+    boolean moveTetrominoDown() {
         if (dropCollisionDetection()) {
             addTetrominoToBoard();
+            return false;
         } else {
             actualTetromino.topLeftRow++;
             renderActualTetromino();
+            return true;
         }
     }
 
@@ -234,7 +255,7 @@ public class TGameController {
 
     /*
      * --------------------------------------------------------------------------
-     * 						Layout and Rendering Tetrominos
+     * 						Layout and Rendering Tetrominoes
      * --------------------------------------------------------------------------
      */
     private void createMenu() {
@@ -242,36 +263,43 @@ public class TGameController {
         layoutParts.drawBackground(menu, 50, 220, 500, 300);
         Button playButton = layoutParts.drawButton(menu, 200, 250, "PLAY");
         Button top10Button = layoutParts.drawButton(menu, 200, 310, "TOP 10 Scores");
-        Button highscoresButton = layoutParts.drawButton(menu, 200, 370, "HIGHSCORE OF EACH PLAYER");
+        Button highScoresButton = layoutParts.drawButton(menu, 200, 370, "HIGHSCORE OF EACH PLAYER");
         Button exitButton = layoutParts.drawButton(menu, 200, 430, "EXIT");
         playButton.addEventHandler(ActionEvent.ACTION, playGameEvent);
         top10Button.addEventHandler(ActionEvent.ACTION, top10Event);
-        highscoresButton.addEventHandler(ActionEvent.ACTION, highscoresEvent);
+        highScoresButton.addEventHandler(ActionEvent.ACTION, highScoresEvent);
         exitButton.addEventHandler(ActionEvent.ACTION, exitEvent);
+    }
+
+    private void createEndGameScreen() {
+        endGameScreen.getChildren().clear();
+        layoutParts.drawBackground(endGameScreen, 50, 10, 500, 200);
+        layoutParts.setBigLabel(endGameScreen, 210, 50, "GAME OVER");
+        layoutParts.setBigLabel(endGameScreen, 100, 100, "NO PLACE FOR NEXT \nTETROMINO");
+        layoutParts.setBigLabel(endGameScreen, 100, 200, "YOUR SCORE: " + actualScore.getScore().toString());
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     private void createNewGameLauncher() {
         newGameLauncher = new Group();
-        layoutParts.drawBackground(newGameLauncher, 50, 220, 500, 300);
+        layoutParts.drawBackground(newGameLauncher, 50, 220, 500, 400);
         layoutParts.setSmallLabel(newGameLauncher, 200, 260, "YOUR NAME");
         playerNameInput = layoutParts.drawTextField(newGameLauncher, 200, 280);
         difficultySlider = layoutParts.drawSlider(newGameLauncher, 200, 350, 1, 10);
         layoutParts.setSmallLabel(newGameLauncher, 200, 380, "DIFFICULTY LEVEL:");
         difficultyChooseLabel = layoutParts.setSmallLabel(newGameLauncher, 320, 380, "1");
-        difficultySlider.valueProperty().addListener(new ChangeListener() {
-            public void changed(ObservableValue arg0, Object arg1, Object arg2) {
-                difficultyChooseLabel.textProperty().setValue(
-                        String.valueOf((int) difficultySlider.getValue()));
 
-            }
-        });
-        Button playButton = layoutParts.drawButton(newGameLauncher, 200, 430, "PLAY");
+        difficultySlider.valueProperty().addListener((ChangeListener) (arg0, arg1, arg2) -> difficultyChooseLabel.textProperty().setValue(
+                String.valueOf((int) difficultySlider.getValue())));
+
+        Button playButton = layoutParts.drawButton(newGameLauncher, 200, 410, "PLAY");
         playButton.addEventHandler(ActionEvent.ACTION, launchGameEvent);
+        Button backButton = layoutParts.drawButton(newGameLauncher, 200, 460, "BACK TO MENU");
+        backButton.addEventHandler(ActionEvent.ACTION, backToMenuEvent);
+        layoutParts.setSmallLabel(newGameLauncher, 200, 520, "CONTROLS\nUP-ROTATE\nLEFT/RIGHT-MOVE TO SIDE\nDOWN-SOFTDROP\nSPACE-HARDDROP");
     }
 
-    private void createGameView() {
-
+    private void createGameScreen() {
         scoreStatus = layoutParts.setBigLabel(labels, 350, 130, "");
         difficultyStatus = layoutParts.setBigLabel(labels, 350, 290, "");
         layoutParts.setBigLabel(labels, 350, 50, actualScore.getPlayerName());
@@ -280,12 +308,55 @@ public class TGameController {
         layoutParts.setBigLabel(labels, 350, 370, "NEXT\nTETROMINO");
     }
 
+    private void createTopTenScoresScreen() {
+        topTenScoresScreen.getChildren().clear();
+        layoutParts.drawBackground(topTenScoresScreen, 50, 220, 500, 300);
+        layoutParts.setBigLabel(topTenScoresScreen, 180, 260, "TOP 10 SCORES!!!");
+        layoutParts.setSmallLabel(topTenScoresScreen, 200, 280, scores.topScoresToString());
+        Button backButton = layoutParts.drawButton(topTenScoresScreen, 200, 440, "BACK TO MENU");
+        backButton.addEventHandler(ActionEvent.ACTION, backToMenuEvent);
+    }
+
+    private void createBestScoreOfPlayerScreen() {
+        bestScoreOfPlayerScreen.getChildren().clear();
+        layoutParts.drawBackground(bestScoreOfPlayerScreen, 50, 80, 500, 500);
+        layoutParts.setBigLabel(bestScoreOfPlayerScreen, 130, 120, "BEST SCORE OF PLAYERS");
+        Text scoresText = layoutParts.setSmallLabel(bestScoreOfPlayerScreen, 200, 140, scores.bestScoreOfPlayerToString());
+        bestScoreOfPlayerScreen.getChildren().remove(scoresText);
+        ScrollPane list = new ScrollPane(scoresText);
+        list.setLayoutX(150);
+        list.setLayoutY(150);
+        list.setPrefSize(300, 300);
+        bestScoreOfPlayerScreen.getChildren().add(list);
+        Button backButton = layoutParts.drawButton(bestScoreOfPlayerScreen, 200, 500, "BACK TO MENU");
+        backButton.addEventHandler(ActionEvent.ACTION, backToMenuEvent);
+    }
+
+    private void showTopTenScoresScreen() {
+        createTopTenScoresScreen();
+        root.getChildren().add(topTenScoresScreen);
+    }
+
+    private void showBestScoreOfPlayerScreen() {
+        createBestScoreOfPlayerScreen();
+        root.getChildren().add(bestScoreOfPlayerScreen);
+    }
+
+    private void hideTopTenScoresScreen() {
+        root.getChildren().remove(topTenScoresScreen);
+    }
+
+    private void hideBestScoreOfPlayerScreen() {
+        root.getChildren().remove(bestScoreOfPlayerScreen);
+    }
+
     private void showMenu() {
         root.getChildren().add(menu);
     }
 
     private void hideMenu() {
         root.getChildren().remove(menu);
+        hideEndGameScreen();
     }
 
     private void showNewGameLauncher() {
@@ -296,10 +367,19 @@ public class TGameController {
         root.getChildren().remove(newGameLauncher);
     }
 
+    private void showEndGameScreen() {
+        root.getChildren().add(endGameScreen);
+    }
+
+    private void hideEndGameScreen() {
+        root.getChildren().remove(endGameScreen);
+    }
+
     private void refreshBoard() {
         actualScore.addLinesClearScore(actualBoard.findAndClearFullLines());
         refreshStatusTexts();
         renderBoard();
+        refreshTetrominoFalling();
         nextTetromino();
         if (isSpaceForNextTetromino()) {
             renderActualTetromino();
@@ -342,9 +422,6 @@ public class TGameController {
         for (int row = 0; row < nextTetromino.shapes[nextTetromino.actualShape].length; row++) {
             for (int col = 0; col < nextTetromino.shapes[nextTetromino.actualShape][row].length; col++) {
                 if (nextTetromino.shapes[nextTetromino.actualShape][row][col] != 0) {
-                    //Rectangle r = new Rectangle(col*blockSize+350,row*blockSize+400,blockSize,blockSize);
-                    //r.setFill(layoutParts.chooseColor(nextTetromino.shapes[nextTetromino.actualShape][row][col]));
-                    //nextTetrominoBlocks.getChildren().add(r);
                     layoutParts.drawBlock(nextTetrominoBlocks, col + 12, row + 14,
                             nextTetromino.shapes[nextTetromino.actualShape][row][col]);
                 }
@@ -360,56 +437,49 @@ public class TGameController {
      * --------------------------------------------------------------------------
      */
 
-    EventHandler<ActionEvent> playGameEvent = new EventHandler<ActionEvent>() {
-        @Override
-        public void handle(ActionEvent event) {
-            System.out.println("play");
-            hideMenu();
-            showNewGameLauncher();
-        }
+    EventHandler<ActionEvent> playGameEvent = event -> {
+        hideMenu();
+        showNewGameLauncher();
     };
+
     EventHandler<ActionEvent> launchGameEvent = new EventHandler<ActionEvent>() {
         @Override
         public void handle(ActionEvent event) {
-            System.out.println("play");
-            if (playerNameInput.getText().isEmpty()) {
+            if (playerNameInput.getText().trim().length() == 0) {
+                layoutParts.setSmallLabel(newGameLauncher, 200, 320, "Your name can't be empty");
 
             } else {
-                actualScore = new TScore((int) difficultySlider.getValue(), playerNameInput.getText());
+                actualScore = new TScore((int) difficultySlider.getValue(), playerNameInput.getText().trim());
                 hideNewGameLauncher();
                 playTheGame();
             }
+        }
+    };
 
-        }
+    EventHandler<ActionEvent> backToMenuEvent = event -> {
+        hideNewGameLauncher();
+        hideTopTenScoresScreen();
+        hideBestScoreOfPlayerScreen();
+        showMenu();
     };
-    EventHandler<ActionEvent> top10Event = new EventHandler<ActionEvent>() {
-        @Override
-        public void handle(ActionEvent event) {
-            System.out.println("top10");
-            hideMenu();
-            //showTop10();
-        }
+
+    EventHandler<ActionEvent> top10Event = event -> {
+        hideMenu();
+        showTopTenScoresScreen();
     };
-    EventHandler<ActionEvent> highscoresEvent = new EventHandler<ActionEvent>() {
-        @Override
-        public void handle(ActionEvent event) {
-            System.out.println("highscore");
-            hideMenu();
-            // showHighscores();
-        }
+
+    EventHandler<ActionEvent> highScoresEvent = event -> {
+        hideMenu();
+        showBestScoreOfPlayerScreen();
     };
-    EventHandler<ActionEvent> exitEvent = new EventHandler<ActionEvent>() {
-        @Override
-        public void handle(ActionEvent event) {
-            System.exit(0);
-        }
-    };
+
+    EventHandler<ActionEvent> exitEvent = event -> System.exit(0);
 
     EventHandler<KeyEvent> softDropResume = new EventHandler<KeyEvent>() {
         @Override
         public void handle(KeyEvent event) {
-            if (event.getCode() == KeyCode.DOWN)
-                softDropStatus = true;
+            if (event.getCode() == KeyCode.DOWN || event.getCode() == KeyCode.SPACE)
+                dropStatus = true;
         }
     };
 
@@ -418,16 +488,25 @@ public class TGameController {
         public void handle(KeyEvent event) {
             if (event.getCode() == KeyCode.RIGHT) {
                 moveTetrominoToTheSide("right");
+
             } else if (event.getCode() == KeyCode.DOWN) {
-                if (softDropStatus) {
+                if (dropStatus) {
                     moveTetrominoDown();
                     actualScore.addSoftDropScore();
                     refreshStatusTexts();
                 }
+
             } else if (event.getCode() == KeyCode.LEFT) {
                 moveTetrominoToTheSide("left");
+
             } else if (event.getCode() == KeyCode.UP) {
                 rotateTetromino();
+
+            } else if (event.getCode() == KeyCode.SPACE) {
+                if (dropStatus) {
+                    hardDrop();
+                }
+
             }
         }
     };

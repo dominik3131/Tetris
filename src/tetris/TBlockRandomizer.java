@@ -6,7 +6,7 @@ import java.util.List;
 
 //TGM1 randomize algorithm which makes less possibility for successive identical blocks
 public class TBlockRandomizer {
-    private List<Integer> lastFourBlocks;
+    private final List<Integer> lastFourBlocks;
 
     public TBlockRandomizer() {
         lastFourBlocks = new ArrayList<>(4);

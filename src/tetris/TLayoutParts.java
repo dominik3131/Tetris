@@ -14,7 +14,6 @@ import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
 
 public class TLayoutParts {
-    private final int blockSize = 32;
 
     public Scene setScene(BorderPane root) {
         root.setId("pane");
@@ -29,12 +28,13 @@ public class TLayoutParts {
         backgroundGroup.getChildren().add(r);
     }
 
-    public void drawBlock(Group termino, int col, int row, int color) {
+    public void drawBlock(Group tetromino, int col, int row, int color) {
+        int blockSize = 32;
         Rectangle r = new Rectangle(col * blockSize, row * blockSize, blockSize, blockSize);
         r.setFill(chooseColor(color));
         r.setStroke(Color.CORNSILK);
         r.setStrokeWidth(2);
-        termino.getChildren().add(r);
+        tetromino.getChildren().add(r);
     }
 
     public TextField drawTextField(Group textFieldGroup, int x, int y) {
@@ -58,7 +58,7 @@ public class TLayoutParts {
         slider.setMajorTickUnit(1);
         slider.setPrefSize(200, 10);
         slider.setBlockIncrement(1);
-        slider.valueProperty().addListener((obs, oldval, newVal) ->
+        slider.valueProperty().addListener((obs, oldVal, newVal) ->
                 slider.setValue(newVal.intValue()));
         sliderGroup.getChildren().add(slider);
         return slider;
