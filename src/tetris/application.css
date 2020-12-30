@@ -4,3 +4,11 @@
     -fx-background-size: 320 640;
     -fx-background-color:#827b7b;
 }
+
+.button{
+    -fx-background-color: #2b58e0;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-padding: 10px;
+    -fx-background-radius:30px
+}

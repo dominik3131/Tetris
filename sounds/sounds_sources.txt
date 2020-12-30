@@ -1,0 +1,26 @@
+INFO---------------------------------------------------------------------------------------------------------------
+Type of licence is given next to link to particular sound.
+
+ROTATE
+https://freesound.org/people/s-cheremisinov/sounds/402183/
+CC0
+
+BLOCK PUT
+https://freesound.org/people/KorgMS2000B/sounds/54414/
+CC0
+
+GAME OVER
+https://freesound.org/people/myfox14/sounds/382310/
+CC0
+
+BUTTON CLICK
+https://freesound.org/people/finix473/sounds/546974/
+CC0
+
+LINE CLEAR
+https://freesound.org/people/grunz/sounds/109662/
+CC3
+
+IN GAME SOUND
+https://ncs.io/invincible
+UGC

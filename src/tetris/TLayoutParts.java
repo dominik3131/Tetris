@@ -70,6 +70,8 @@ public class TLayoutParts {
         button.setLayoutX(x);
         button.setLayoutY(y);
         button.setMinSize(200, 30);
+        button.getStyleClass().clear();
+        button.getStyleClass().add("button");
         buttonGroup.getChildren().add(button);
         return button;
     }

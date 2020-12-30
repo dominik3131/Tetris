@@ -43,9 +43,11 @@ public class TGameController {
     private Text difficultyStatus;
     private Timeline TetrominoFall;
     private boolean dropStatus;
-    private final TLayoutParts layoutParts;
+    private TLayoutParts layoutParts;
+    private TSoundManager soundManager;
 
     public TGameController(Stage stage) {
+        soundManager = new TSoundManager();
         primaryStage = stage;
         primaryStage.setTitle("Tetris");
         layoutParts = new TLayoutParts();
@@ -98,6 +100,7 @@ public class TGameController {
         refreshBoard();
         TetrominoFall.play();
         dropStatus = true;
+        soundManager.playGameSound();
     }
 
     private void refreshTetrominoFalling() {
@@ -114,6 +117,7 @@ public class TGameController {
         createEndGameScreen();
         showEndGameScreen();
         scores.addScore(actualScore);
+        soundManager.playGameOverSound();
     }
 
     private void clearStateOfTheGame() {
@@ -132,6 +136,7 @@ public class TGameController {
                 }
             }
         }
+        soundManager.playBlockPutSound();
         refreshBoard();
     }
 
@@ -249,6 +254,7 @@ public class TGameController {
     private void rotateTetromino() {
         if (!rotateCollisionDetection()) {
             actualTetromino.rotateBlock();
+            soundManager.playRotateSound();
         }
         renderActualTetromino();
     }
@@ -262,7 +268,7 @@ public class TGameController {
         menu = new Group();
         layoutParts.drawBackground(menu, 50, 220, 500, 300);
         Button playButton = layoutParts.drawButton(menu, 200, 250, "PLAY");
-        Button top10Button = layoutParts.drawButton(menu, 200, 310, "TOP 10 Scores");
+        Button top10Button = layoutParts.drawButton(menu, 200, 310, "TOP 10 SCORES");
         Button highScoresButton = layoutParts.drawButton(menu, 200, 370, "HIGHSCORE OF EACH PLAYER");
         Button exitButton = layoutParts.drawButton(menu, 200, 430, "EXIT");
         playButton.addEventHandler(ActionEvent.ACTION, playGameEvent);
@@ -376,7 +382,11 @@ public class TGameController {
     }
 
     private void refreshBoard() {
-        actualScore.addLinesClearScore(actualBoard.findAndClearFullLines());
+        int fullLines = actualBoard.findAndClearFullLines();
+        if (fullLines > 0) {
+            actualScore.addLinesClearScore(fullLines);
+            soundManager.playLineClearSound();
+        }
         refreshStatusTexts();
         renderBoard();
         refreshTetrominoFalling();
@@ -438,25 +448,25 @@ public class TGameController {
      */
 
     EventHandler<ActionEvent> playGameEvent = event -> {
+        soundManager.playButtonClickSound();
         hideMenu();
         showNewGameLauncher();
     };
 
-    EventHandler<ActionEvent> launchGameEvent = new EventHandler<ActionEvent>() {
-        @Override
-        public void handle(ActionEvent event) {
-            if (playerNameInput.getText().trim().length() == 0) {
-                layoutParts.setSmallLabel(newGameLauncher, 200, 320, "Your name can't be empty");
+    EventHandler<ActionEvent> launchGameEvent = event -> {
+        soundManager.playButtonClickSound();
+        if (playerNameInput.getText().trim().length() == 0) {
+            layoutParts.setSmallLabel(newGameLauncher, 200, 320, "Your name can't be empty");
 
-            } else {
-                actualScore = new TScore((int) difficultySlider.getValue(), playerNameInput.getText().trim());
-                hideNewGameLauncher();
-                playTheGame();
-            }
+        } else {
+            actualScore = new TScore((int) difficultySlider.getValue(), playerNameInput.getText().trim());
+            hideNewGameLauncher();
+            playTheGame();
         }
     };
 
     EventHandler<ActionEvent> backToMenuEvent = event -> {
+        soundManager.playButtonClickSound();
         hideNewGameLauncher();
         hideTopTenScoresScreen();
         hideBestScoreOfPlayerScreen();
@@ -464,11 +474,13 @@ public class TGameController {
     };
 
     EventHandler<ActionEvent> top10Event = event -> {
+        soundManager.playButtonClickSound();
         hideMenu();
         showTopTenScoresScreen();
     };
 
     EventHandler<ActionEvent> highScoresEvent = event -> {
+        soundManager.playButtonClickSound();
         hideMenu();
         showBestScoreOfPlayerScreen();
     };
@@ -493,6 +505,7 @@ public class TGameController {
                 if (dropStatus) {
                     moveTetrominoDown();
                     actualScore.addSoftDropScore();
+                    soundManager.playSoftDropSound();
                     refreshStatusTexts();
                 }
 
